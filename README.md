@@ -11,13 +11,13 @@
 
 ## 1. Introduction
 
-> **Current source handoff — WEST v0.5.4 / Home Fluid 6.0:** The maintainer confirmed smooth Home scrolling in the supplied GLM release APK. This cleaned source preserves its Android application code and release optimization configuration. The earlier CI results below apply to the historical baseline, not a fresh build of this package.
+> **Current source — WEST v0.5.5 with unreleased Immersive artwork fix:** This branch is based on upstream v0.5.5 and adds a bounded HD artwork request for WEST Immersive. The version remains 0.5.5 (21) until this change is integrated into a later release. The v0.5.6 updater is developed separately; it is not included in this branch. Immersive compilation and device visual verification are pending.
 
 WEST is an Android music client built with Kotlin and Jetpack Compose. It uses YouTube Music discovery and streaming, local playlists, a persistent Media3/ExoPlayer queue, lyrics, audio caching, and WEST-specific discovery and personalization features. WEST descends from [ViMusic](https://github.com/vfsfitvnm/ViMusic) and retains the applicable upstream copyright and GPL-3.0 obligations.
 
-**Repository and naming.** Development in this contribution takes place at [adarsh01-cyber/WEST](https://github.com/adarsh01-cyber/WEST) on `west-e2e-update`; the [upstream contribution PR](https://github.com/iaaryans/WEST/pull/2) targets `iaaryans/WEST:main`. The Gradle root project is named `WEST`. The inherited Kotlin package and base application ID remain `it.vfsfitvnm.vimusic`; they are identifiers, not a second product name. Debug variants can append `.debug` or, with `-PwestPreview`, `.preview`.
+**Repository and naming.** The upstream project is [iaaryans/WEST](https://github.com/iaaryans/WEST); contributions are developed in [adarsh01-cyber/WEST](https://github.com/adarsh01-cyber/WEST). This branch is `immersive-hd-artwork-fix`. The Gradle root project is named `WEST`. The inherited Kotlin package and base application ID remain `it.vfsfitvnm.vimusic`; debug variants can append `.debug` or, with `-PwestPreview`, `.preview`.
 
-**Documentation baseline (24 November 2026).** Sections 1–19 describe the current `west-e2e-update` source, not every historical beta or ZIP. The source still declares `versionName 0.5.4` and `versionCode 20`; this is not a claim that a new production release has been published. Section 20 and its dated notes preserve older implementation history and must not override current source, build, or CI facts. “Implemented” below means there is a wired code path; it does **not** certify successful operation with live upstream services on every device.
+**Documentation baseline (26 November 2026).** Sections 1–19 describe the v0.5.5 base and the unreleased Immersive artwork fix in this branch. The source declares `versionName 0.5.5` and `versionCode 21`; a planned v0.5.7 release requires integration with the updater branch and a later version bump. Historical results in section 20 are not current verification.
 
 ## 2. Overview
 
@@ -26,7 +26,7 @@ WEST is an Android music client built with Kotlin and Jetpack Compose. It uses Y
 | Product / Gradle root project | WEST | `settings.gradle.kts` |
 | Base application ID / namespace | `it.vfsfitvnm.vimusic` | `app/build.gradle.kts` |
 | Debug application IDs | `it.vfsfitvnm.vimusic.debug` normally; `it.vfsfitvnm.vimusic.preview` with `-PwestPreview` | `app/build.gradle.kts` |
-| Source version | `0.5.4` (`versionCode 20`) | `app/build.gradle.kts` |
+| Source version | `0.5.5` (`versionCode 21`) | `app/build.gradle.kts` |
 | minSdk / targetSdk / compileSdk | 21 / 34 / 34 | `app/build.gradle.kts` |
 | Toolchain | JDK 17, Android Gradle Plugin 7.3.0, Gradle wrapper 7.4 | Build files and CI |
 | Gradle modules | 7 (`app` and six support libraries) | `settings.gradle.kts` |
@@ -54,11 +54,11 @@ The table describes **features wired in this source branch**, not a full device-
 | Android media search integration | Separate `onPlayFromSearch` integration for MediaSession / media browser; limited by device and service availability | `service/PlayerService.kt`, `PlayerMediaBrowserService.kt` |
 | Hybrid Smart Queue | Playing a search result seeds a bounded queue; Smart Continue can fetch/rank related candidates, preserve selected/visible result ordering and handle Next/Previous | `service/PlayerService.kt`, `intelligence/SmartQueueRanker.kt` |
 | Playback | Media3/ExoPlayer streaming, background service, media notification, queue persistence, reordering, seek/skip, sleep timer | `service/PlayerService.kt`, `ui/screens/player/` |
-| Immersive player | Expanded playback surface with artwork and animated controls, plus reduced-motion support | `ui/screens/player/ImmersivePlayerDialog.kt`, `ui/screens/settings/AppearanceSettings.kt` |
+| Immersive player | Expanded playback surface with bounded 800–1440 px HD artwork requests for cover and backdrop, animated controls and reduced-motion support; source artwork limits final clarity | `ui/screens/player/ImmersivePlayerDialog.kt`, `ui/screens/settings/AppearanceSettings.kt` |
 | Artwork / browsing performance | Size-aware artwork requests, shared browse caches, time-bounded LRU policies and scroll-aware deferred artwork work; **not** a guarantee of zero jank | `ui/performance/HomeArtworkPolicy.kt`, `MusicBrowseCache.kt`, `ui/screens/home/MoodspaceScreen.kt` |
 | Local library | Favorites, local playlists, albums/artists, library reordering and playlist import entry points | `Database.kt`, `ui/screens/home/HomePlaylists.kt`, `ui/screens/localplaylist/` |
 | Spotify import | Public-playlist link import and track matching to catalog results, with review/unmatched-item handling; unofficial Spotify endpoints can change | `spotify/SpotifyImporter.kt`, `TrackMatcher.kt`, `ui/screens/spotify/SpotifyImportScreen.kt` |
-| Listening Insights / WEST Wrapped | Recorded listening sessions, trends, streaks, top tracks/artists/albums, calendar heatmap and shareable annual summary | `listening/` |
+| Listening Insights / WEST Wrapped | Recorded listening sessions, trends, streaks, top tracks/artists/albums, calendar heatmap and shareable annual summary with official WEST wordmark | `listening/` |
 | Lyrics | YouTube Music lyrics, KuGou synchronized lyrics where available, and manual edits | `ui/screens/player/Lyrics.kt`, `kugou/` |
 | Audio cache and offline | Configurable audio cache; offline playlist playback can use **fully cached** tracks. This is **not** a managed offline-download or permanent-download system | `service/PlayerService.kt`, `ui/screens/localplaylist/OfflinePlaylistAction.kt` |
 | UI settings | Light/dark/dynamic palettes, artwork shapes, animation/reduced-motion preferences, playback settings | `ui/styling/`, `ui/screens/settings/` |
@@ -299,13 +299,13 @@ Clone the repository or use an existing checkout. For this contribution branch:
 ```bash
 git clone https://github.com/adarsh01-cyber/WEST.git
 cd WEST
-git switch west-e2e-update
+git switch immersive-hd-artwork-fix
 ./gradlew --no-daemon -PwestPreview :app:testDebugUnitTest :innertube:test :kugou:test :app:lintDebug :app:assembleDebug
 ```
 
 Windows PowerShell equivalents use `.\gradlew.bat` instead of `./gradlew`. `-PwestPreview` produces the `.preview` application-ID suffix; omitting it uses the normal debug suffix. Find the compiled artifact(s) under `app/build/outputs/apk/debug/`. For a device connected through ADB, install the **actual output filename** reported by the build.
 
-**Verified CI baseline (24 November 2026):** The pull-request workflow [WEST - Build and Verify APK, run 45452354244](https://github.com/iaaryans/WEST/actions/runs/45452354244) completed successfully for commit `0f12f3d`. It passed Android SDK setup, mandatory JVM regression tasks, Android lint, `app:assembleDebug`, APK signature/label/integrity and the workflow's size threshold (**greater than 25,000,000 bytes**), then uploaded a `WEST-Verified-Build` artifact containing the packaged APK and source archive. The GitHub run is evidence for **that commit and configuration**, not blanket runtime certification.
+**Historical verified CI baseline (24 November 2026; not this branch):** The pull-request workflow [WEST - Build and Verify APK, run 45452354244](https://github.com/iaaryans/WEST/actions/runs/45452354244) completed successfully for commit `0f12f3d`. It passed Android SDK setup, mandatory JVM regression tasks, Android lint, `app:assembleDebug`, APK signature/label/integrity and the workflow's size threshold (**greater than 25,000,000 bytes**), then uploaded a `WEST-Verified-Build` artifact containing the packaged APK and source archive. The GitHub run is evidence for **that commit and configuration**, not blanket runtime certification.
 
 **Instrumentation boundary:** `reactivecircus/android-emulator-runner` is **manual-only** (`workflow_dispatch`) because the hosted emulator timed out in a prior run. It was **skipped** in the successful PR run. To run instrumentation yourself, boot an Android emulator or connect a device and execute `./gradlew -PwestPreview :app:connectedDebugAndroidTest`; do not mark tests as passed without the resulting report.
 
@@ -317,7 +317,7 @@ For the optimized production variant, configure the original release signing key
 
 Release output is under `app/build/outputs/apk/release/`. Verify with `apksigner verify --verbose --print-certs <APK>` and compare its certificate to the previous APK. The expected optimized size is approximately 5.8 MB based on the supplied release; exact size and update compatibility require a successful build and signature comparison. CI's preview/debug artifact is not the production release.
 
-The `assembleRelease` task may produce an **unsigned** APK without a configured signing key; it is not an automatically installable or published release. See section 11 for signing precautions. APK size is recorded for information; it is not a quality metric or a current build gate.
+The `assembleRelease` task may produce an **unsigned** APK without a configured signing key; it is not an automatically installable or published release. See section 11 for signing precautions. APK size is not a general quality metric; the active PR workflow enforces a preview artifact size greater than 25,000,000 bytes.
 
 ## 11. Configuration
 
@@ -350,7 +350,7 @@ Key manifest permissions and their intended purposes:
 
 Both JVM tests and Android instrumentation test sources are present. Their presence does **not** imply that every device or live-service flow has been tested.
 
-| Coverage area | Representative tests | Latest PR CI |
+| Coverage area | Representative tests | Historical PR CI (not this branch) |
 | --- | --- | --- |
 | Spotify import and track matching | `SpotifyImporterTest`, `TrackMatcherTest` | JVM test tasks passed |
 | Listening statistics, migration and Wrapped | `From23To24MigrationTest`, `PlaybackSessionTest`, `ListeningStatsCalculatorTest`, `WrappedCardPaletteTest` | JVM test tasks passed |
@@ -373,7 +373,7 @@ For live playback, UI smoothness, search/queue navigation and crash regressions,
 
 ## 14. Release and deployment
 
-The source still declares `versionName 0.5.4` / `versionCode 20`. The historical `West-v0.5.4-beta.apk` and its checksums belong to an earlier distributed debug beta, **not** the current `west-e2e-update` build.
+The source declares `versionName 0.5.5` / `versionCode 21`. The Immersive fix is unreleased; no new APK or successful CI run is claimed for it. The earlier beta checksum is historical.
 
 | Distribution channel | Current status |
 | --- | --- |
@@ -398,6 +398,8 @@ The `-PwestPreview` debug variant uses `it.vfsfitvnm.vimusic.preview`, which is 
 - The repository no longer ships `TECHNICAL_AUDIT.md` (the previous README linked to it). The findings it documented that were fixed in this revision are annotated in code comments with their audit identifiers (`BUG-001`, `BUG-002`, `BUG-004`, `BUG-008`, `MissingOnPlayFromSearch`, `MissingIntentFilterForMediaSearch`) and are listed in section 20. Open items remain: no runtime `POST_NOTIFICATIONS` request, analytics without opt-out, and historical signing-credential fallback values in the preserved Git history (removed from active configuration).
 
 ## 16. Current limitations
+
+- **Immersive artwork verification pending.** The shared, bounded HD request replaces the former 16 px ambient image. Source quality and device memory determine actual image clarity and performance. No device-level visual or performance test has yet been completed.
 
 - **Device-level verification is incomplete.** The successful PR workflow passes JVM tests, Android lint, APK compilation and packaging, but skips emulator instrumentation. Search/queue behavior, UI frame pacing and stability across devices still require connected tests and measured traces.
 - **No absolute smoothness claim.** Scroll-aware caching, artwork sizing and deferred prefetch are implemented, but “zero lag,” “always 60 FPS,” or exact parity with another app is not established by source review or a green build.
@@ -432,7 +434,7 @@ GPL-3.0, see [`LICENSE`](./LICENSE). WEST contains code by vfsfitvnm and ViMusic
 
 ## 20. Revision notes — what changed since the previous README
 
-> **Historical change log.** This section records work leading to the earlier beta/source revisions and retains its original sequencing. It is not the current feature inventory or test report; use sections 2–3 and 10–14 for the source and CI status as of 24 November 2026.
+> **Historical change log.** This section records work leading to the earlier beta/source revisions and retains its original sequencing. It is not the current feature inventory or test report; use sections 2–3 and 10–14 for the source and CI status as of 26 November 2026.
 
 The previous README documented the baseline source. This revision's source tree adds two feature commits and a fix batch; everything below was verified against that final source.
 
@@ -488,11 +490,11 @@ The previous README documented the baseline source. This revision's source tree 
 | Search extensions | Local and online results, smart filtering, pinned and recent queries, listening-time/history search, microphone-based query input, and search-submit handling. On-device search regression tests cover history selection and keyboard Search. |
 | Player experience | Immersive player, animated song/artwork/control transitions, queue persistence and restoration code, and a reduced-motion setting. |
 | Import and statistics | Spotify public-playlist import with candidate review controls; listening Insights, WEST Wrapped summary, and shareable presentation. |
-| GitHub Actions workflow | JVM tests, Android lint, debug APK and integrity/signature/label verification are mandatory in normal PR CI; APK size is reported without an arbitrary minimum. Emulator instrumentation is **manual-dispatch only** in the current workflow; it was skipped in the successful 24 November run. |
+| GitHub Actions workflow | JVM tests, Android lint, debug APK and integrity/signature/label verification are mandatory in normal PR CI; APK size requirements have varied; see section 14 for the active workflow gate. Emulator instrumentation is **manual-dispatch only** in the current workflow; it was skipped in the successful 24 November run. |
 | Historical ZIP binary | An earlier ZIP carried `apk/WEST-Final.apk`; this does **not** describe the GitHub checkout. Build and release artifacts are delivered by the current CI workflow; Git ignores `*.apk`. |
 | Source hygiene | `README.md` is the primary project guide; required attribution notices remain in source; obsolete standalone reports and optional diagnostic helpers have been removed from the working tree. Preserve copyright attributions, and keep `gradlew` executable on Unix. |
 
-**Current build handoff:** Use JDK 17, Android SDK Platform 34 and `./gradlew --no-daemon -PwestPreview :app:testDebugUnitTest :innertube:test :kugou:test :app:lintDebug :app:assembleDebug`. The `.preview` suffix is used for preview builds. PR CI ran successfully on 24 November; run `:app:connectedDebugAndroidTest` separately on an emulator or device and inspect its result before making full-E2E claims. The historical 25 MB threshold has been removed from the active build scripts and CI.
+**Current build handoff:** Use JDK 17, Android SDK Platform 34 and `./gradlew --no-daemon -PwestPreview :app:testDebugUnitTest :innertube:test :kugou:test :app:lintDebug :app:assembleDebug`. The `.preview` suffix is used for preview builds. PR CI ran successfully on 24 November; run `:app:connectedDebugAndroidTest` separately on an emulator or device and inspect its result before making full-E2E claims. The earlier removal of the 25 MB threshold was specific to a historical snapshot; the active PR workflow enforces >25,000,000 bytes.
 
 **Remaining cautions:** This README's earlier release-size tables, test counts, feature descriptions, and original repository naming are historical. The bundled source still has upstream application ID and legacy toolchain constraints, but no longer contains hardcoded signing fallback credentials in the active `app/build.gradle.kts`. Do not publish a real release signing key, password, or keystore in Git; review signing configuration and privacy settings before production distribution. Fastlane screenshots in `fastlane/metadata/` may be outdated and should be replaced with captures of the actual WEST UI before store submission.
 
@@ -530,3 +532,13 @@ This local source update is uncommitted; use `./gradlew :app:assemblePerformance
 The maintainer confirmed the supplied GLM release APK (`WEST (4).apk`) is verified and smooth on their device. The source handoff preserves the supplied Home Fluid 6.0 application code byte-for-byte. Only release signing configuration, repository selection, packaging checks, ignore rules, and documentation were cleaned up. No dependency versions, runtime features or UI rendering code were changed in this handoff. The original Git history is restored from the earlier local E2E archive, not reconstructed from the newer GitHub branch. No new Android build or regression result is claimed for these configuration edits.
 
 **Clean source package:** The original local Git snapshot preserves 22 reachable commits ending at `2150ce7` (`west-fix`). Newer source edits and root-file cleanup are uncommitted. Do not force-push this older history over the current remote branch. No keystore, signing passwords, APK or new commit is included. Historical signing fallback values remain in the original Git history. Rotate any actual exposed passwords without changing the private key.
+
+### WEST v0.5.5 — Wrapped branding
+
+- Version 0.5.5 (21) and the official WEST wordmark in Wrapped share cards, with duplicate footer branding removed; see [PR #5](https://github.com/iaaryans/WEST/pull/5).
+
+### Unreleased — WEST Immersive HD artwork fix (planned v0.5.7)
+
+- Replaces the 16 × 16 pixel ambient backdrop request with a size-aware, bounded 800–1440 px artwork request. The cover and backdrop use the same source and decode dimensions for Coil cache reuse.
+- Crossfade retains the correct media item artwork and lyrics metadata during transitions. Playback controls and gradient styling remain in place.
+- Source change: `ui/screens/player/ImmersivePlayerDialog.kt`, commit `4f69778`. Compilation, real-device sharpness and memory/frame-pacing tests are pending. This branch has not been integrated with the v0.5.6 updater; version bump and release publication are separate steps.
