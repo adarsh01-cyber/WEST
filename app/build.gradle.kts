@@ -12,8 +12,8 @@ android {
         minSdk = 21
         targetSdk = 34
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 22
-        versionName = "0.5.6"
+        versionCode = 24
+        versionName = "0.5.8"
     }
 
     splits {
